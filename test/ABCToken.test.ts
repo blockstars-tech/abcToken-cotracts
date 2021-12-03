@@ -24,10 +24,21 @@ const ten = new BN("10");
 const tenPow8 = ten.pow(new BN("8"));
 const tenPow18 = ten.pow(new BN("18"));
 
-const devAddress = "0x6148E01353EF1104bA85DDe9B60675A9D61B61A1";
-const minNumTokensSellToAddToLiquidity = new BN("5000").mul(tenPow8);
+const devTokenFeePercent = new BN("36");
+const devBNBFeePercent = new BN("12");
+const buyBackFeePercent = new BN("28");
+const liquidityFeePercent = new BN("24");
 
-contract("ABCToken", async (accounts) => {
+const devAddress = "0xa670a43859bba57da9f0a275b601a3f0acccd41a";
+
+const coreTeamAddress = "0xd6bd0aa9ec3b00a11c9b56263ba730d3c1a82b18";
+const advisorsAddress = "0x6148e01353ef1104ba85dde9b60675a9d61b61a1";
+const reserveAddress = "0x442c53578def2ba3e0e3d402907ba2e6ce204499";
+const stakingAddress = "0x3aa9c623b4f6692f1b1c710899094548cc8fb316";
+const ecosystemAddress = "0x1022d7d2c37281af0af8068639211e0f6b09271f";
+const playToEarnAddress = "0xbf4f5ca51f777995f60e1f6a7e488787dc82c524";
+
+contract("ABCToken", (accounts) => {
   const [deployer, user1, user2] = accounts;
 
   let router: IUniswapV2Router02Instance;
@@ -84,25 +95,43 @@ contract("ABCToken", async (accounts) => {
 
     it("router address should be pancake router address", async () => {
       const expectedRouterAddress = router.address;
-      const actualRouterAddress = await token.PANCAKE_ROUTER();
+      const actualRouterAddress = await token.routerAddress();
       assert.strictEqual(actualRouterAddress.toLowerCase(), expectedRouterAddress.toLowerCase());
     });
 
-    it("dev team fee should be 3,6%", async () => {
-      const expectedDevFee = new BN("36");
-      const actualDevFee = await token.DEV_FEE();
+    it("dev team fee should be setted", async () => {
+      const expectedDevFee = devTokenFeePercent;
+      const actualDevFee = await token.devTokenFeePercent();
       assert.isTrue(
         actualDevFee.eq(expectedDevFee),
         `expected dev fee is -> ${expectedDevFee.toString()} but contract returns ${actualDevFee.toString()}`
       );
     });
 
-    it("liquidity fee should be 2,4%", async () => {
-      const expectedLiquidityFee = new BN("24");
-      const actualLiquidityFee = await token.LIQUIDITY_FEE();
+    it("liquidity fee should be setted", async () => {
+      const expectedLiquidityFee = liquidityFeePercent;
+      const actualLiquidityFee = await token.liquidityFeePercent();
       assert.isTrue(
         actualLiquidityFee.eq(expectedLiquidityFee),
         `expected dev fee is -> ${expectedLiquidityFee.toString()} but contract returns ${actualLiquidityFee.toString()}`
+      );
+    });
+
+    it("dev BNB fee should be setted", async () => {
+      const expectedDevBNBFee = devBNBFeePercent;
+      const actualDevBNBFee = await token.devBNBFeePercent();
+      assert.isTrue(
+        actualDevBNBFee.eq(expectedDevBNBFee),
+        `expected dev fee is -> ${expectedDevBNBFee.toString()} but contract returns ${actualDevBNBFee.toString()}`
+      );
+    });
+
+    it("buy back fee should be setted", async () => {
+      const expectedBuyBackFee = buyBackFeePercent;
+      const actualBuyBackFee = await token.buyBackFeePercent();
+      assert.isTrue(
+        actualBuyBackFee.eq(expectedBuyBackFee),
+        `expected dev fee is -> ${expectedBuyBackFee.toString()} but contract returns ${actualBuyBackFee.toString()}`
       );
     });
   });
@@ -141,9 +170,7 @@ contract("ABCToken", async (accounts) => {
         const transferAmount = new BN("100000");
         const expectedDevFee = transferAmount.muln(36).divn(1000); // 3.6%
         const expectedLiquidityFee = transferAmount.muln(24).divn(1000); // 2.4%
-        const expectedRecipientAmount = transferAmount
-          .sub(expectedDevFee)
-          .sub(expectedLiquidityFee);
+        const expectedRecipientAmount = transferAmount.sub(expectedDevFee).sub(expectedLiquidityFee);
         const user1BalanceBefore = await token.balanceOf(user1);
         const user2BalanceBefore = await token.balanceOf(user2);
         const devBalanceBefore = await token.balanceOf(devAddress);
@@ -178,16 +205,6 @@ contract("ABCToken", async (accounts) => {
           Error,
           "time between transfers should be 10 seconds"
         );
-      });
-
-      it("should swap and liquify if contractBalance is more than minNumTokensSellToAddToLiquidity", async () => {
-        await addLiquidity();
-        const transferAmount = new BN("500000").mul(tenPow8);
-        await token.transfer(user2, transferAmount, { from: user1 });
-        const contractBalance = await token.balanceOf(token.address);
-        assert.isTrue(contractBalance.gte(minNumTokensSellToAddToLiquidity));
-        const result = await token.transfer(user1, tenPow8, { from: deployer });
-        truffleAssert.eventEmitted(result, "SwapAndLiquify");
       });
 
       const addLiquidity = async () => {

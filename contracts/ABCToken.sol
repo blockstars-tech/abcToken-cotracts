@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
@@ -8,6 +9,7 @@ import { IUniswapV2Router02 } from "./interfaces/IUniswapV2Router02.sol";
 import { IUniswapV2Factory } from "./interfaces/IUniswapV2Factory.sol";
 import { IUniswapV2Pair } from "./interfaces/IUniswapV2Pair.sol";
 
+// solhint-disable-next-line max-states-count
 contract ABCToken is IERC20Metadata, Ownable {
   mapping(address => uint256) private _balances;
 
@@ -18,24 +20,327 @@ contract ABCToken is IERC20Metadata, Ownable {
   string private _name = "ABCToken";
   string private _symbol = "ABC";
 
-  uint256 private _minNumTokensSellToAddToLiquidity = 5000 * 10**8;
+  // uint256 private _minNumTokensSellToAddToLiquidity = 5000 * 10**8;
 
   mapping(address => bool) private _isExcludedFromFee;
+  mapping(address => bool) private _isPair;
 
-  IUniswapV2Router02 public constant PANCAKE_ROUTER =
-    IUniswapV2Router02(0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F);
-  address public immutable uniswapV2Pair;
+  uint256 private constant TEN_POW_8 = 10**8;
+  uint256 private constant MONTH = 30 days;
+  address public constant DEAD_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
-  address public constant DEV_ADDRESS = 0x6148E01353EF1104bA85DDe9B60675A9D61B61A1;
+  uint256[] public coreTeamUnlockPerMonth = [
+    1_356_666_670,
+    1_356_666_670 + 636_666_669,
+    1_356_666_670 + 636_666_669 * 2,
+    1_356_666_670 + 636_666_669 * 3,
+    1_356_666_670 + 636_666_669 * 4,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 2,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 3,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 4,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 5,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 6,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 7,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 8,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 9,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 10,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 11,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 12,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 13,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 14,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 15,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 16,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 17,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 18,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 19
+  ];
+  uint256 public coreTeamUnlockedTillNow = 0;
 
-  uint256 public constant DEV_FEE = 36;
-  uint256 public constant LIQUIDITY_FEE = 24;
+  uint256[] public advisorsUnlockPerMonth = [
+    0,
+    800_000_000,
+    800_000_000,
+    800_000_000,
+    800_000_000 * 2,
+    800_000_000 * 2,
+    800_000_000 * 2,
+    800_000_000 * 2 + 720_000_000,
+    800_000_000 * 2 + 720_000_000,
+    800_000_000 * 2 + 720_000_000,
+    800_000_000 * 2 + 720_000_000 * 2,
+    800_000_000 * 2 + 720_000_000 * 2,
+    800_000_000 * 2 + 720_000_000 * 2,
+    800_000_000 * 2 + 720_000_000 * 2 + 640_000_000,
+    800_000_000 * 2 + 720_000_000 * 2 + 640_000_000,
+    800_000_000 * 2 + 720_000_000 * 2 + 640_000_000,
+    800_000_000 * 2 + 720_000_000 * 2 + 640_000_000 * 2,
+    800_000_000 * 2 + 720_000_000 * 2 + 640_000_000 * 2,
+    800_000_000 * 2 + 720_000_000 * 2 + 640_000_000 * 2,
+    800_000_000 * 2 + 720_000_000 * 2 + 640_000_000 * 2 + 560_000_000,
+    800_000_000 * 2 + 720_000_000 * 2 + 640_000_000 * 2 + 560_000_000,
+    800_000_000 * 2 + 720_000_000 * 2 + 640_000_000 * 2 + 560_000_000,
+    800_000_000 * 2 + 720_000_000 * 2 + 640_000_000 * 2 + 560_000_000 * 2,
+    800_000_000 * 2 + 720_000_000 * 2 + 640_000_000 * 2 + 560_000_000 * 2,
+    800_000_000 * 2 + 720_000_000 * 2 + 640_000_000 * 2 + 560_000_000 * 2,
+    800_000_000 * 2 + 720_000_000 * 2 + 640_000_000 * 2 + 560_000_000 * 2 + 480_000_000,
+    800_000_000 * 2 + 720_000_000 * 2 + 640_000_000 * 2 + 560_000_000 * 2 + 480_000_000,
+    800_000_000 * 2 + 720_000_000 * 2 + 640_000_000 * 2 + 560_000_000 * 2 + 480_000_000,
+    800_000_000 * 2 + 720_000_000 * 2 + 640_000_000 * 2 + 560_000_000 * 2 + 480_000_000 * 2,
+    800_000_000 * 2 + 720_000_000 * 2 + 640_000_000 * 2 + 560_000_000 * 2 + 480_000_000 * 2,
+    800_000_000 * 2 + 720_000_000 * 2 + 640_000_000 * 2 + 560_000_000 * 2 + 480_000_000 * 2,
+    800_000_000 * 2 + 720_000_000 * 2 + 640_000_000 * 2 + 560_000_000 * 2 + 480_000_000 * 2 + 400_000_000,
+    800_000_000 * 2 + 720_000_000 * 2 + 640_000_000 * 2 + 560_000_000 * 2 + 480_000_000 * 2 + 400_000_000,
+    800_000_000 * 2 + 720_000_000 * 2 + 640_000_000 * 2 + 560_000_000 * 2 + 480_000_000 * 2 + 400_000_000,
+    800_000_000 * 2 + 720_000_000 * 2 + 640_000_000 * 2 + 560_000_000 * 2 + 480_000_000 * 2 + 400_000_000 + 320_000_000
+  ];
+  uint256 public advisorsUnlockedTillNow = 0;
+
+  uint256[] public reserveUnlockPerMonth = [
+    769_230_772,
+    769_230_772,
+    769_230_772,
+    769_230_772 + 769_230_769,
+    769_230_772 + 769_230_769,
+    769_230_772 + 769_230_769,
+    769_230_772 + 769_230_769 * 2,
+    769_230_772 + 769_230_769 * 2,
+    769_230_772 + 769_230_769 * 2,
+    769_230_772 + 769_230_769 * 3,
+    769_230_772 + 769_230_769 * 3,
+    769_230_772 + 769_230_769 * 3,
+    769_230_772 + 769_230_769 * 4,
+    769_230_772 + 769_230_769 * 4,
+    769_230_772 + 769_230_769 * 4,
+    769_230_772 + 769_230_769 * 5,
+    769_230_772 + 769_230_769 * 5,
+    769_230_772 + 769_230_769 * 5,
+    769_230_772 + 769_230_769 * 6,
+    769_230_772 + 769_230_769 * 6,
+    769_230_772 + 769_230_769 * 6,
+    769_230_772 + 769_230_769 * 7,
+    769_230_772 + 769_230_769 * 7,
+    769_230_772 + 769_230_769 * 7,
+    769_230_772 + 769_230_769 * 8,
+    769_230_772 + 769_230_769 * 8,
+    769_230_772 + 769_230_769 * 8,
+    769_230_772 + 769_230_769 * 9,
+    769_230_772 + 769_230_769 * 9,
+    769_230_772 + 769_230_769 * 9,
+    769_230_772 + 769_230_769 * 10,
+    769_230_772 + 769_230_769 * 10,
+    769_230_772 + 769_230_769 * 10,
+    769_230_772 + 769_230_769 * 11,
+    769_230_772 + 769_230_769 * 11,
+    769_230_772 + 769_230_769 * 11,
+    769_230_772 + 769_230_769 * 12
+  ];
+  uint256 public reserveUnlockedTillNow = 0;
+
+  uint256[] public stakingUnlockPerMonth = [
+    400_000_000,
+    400_000_000 * 2,
+    400_000_000 * 3,
+    400_000_000 * 4,
+    400_000_000 * 5,
+    400_000_000 * 6,
+    400_000_000 * 7,
+    400_000_000 * 8,
+    400_000_000 * 9,
+    400_000_000 * 10,
+    400_000_000 * 11,
+    400_000_000 * 11 + 370_000_000,
+    400_000_000 * 11 + 370_000_000 * 2,
+    400_000_000 * 11 + 370_000_000 * 3,
+    400_000_000 * 11 + 370_000_000 * 4,
+    400_000_000 * 11 + 370_000_000 * 5,
+    400_000_000 * 11 + 370_000_000 * 6,
+    400_000_000 * 11 + 370_000_000 * 7,
+    400_000_000 * 11 + 370_000_000 * 8,
+    400_000_000 * 11 + 370_000_000 * 9,
+    400_000_000 * 11 + 370_000_000 * 10,
+    400_000_000 * 11 + 370_000_000 * 11,
+    400_000_000 * 11 + 370_000_000 * 12,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 2,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 3,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 4,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 5,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 6,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 7,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 8,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 9,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 10,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 11,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 2,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 3,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 4,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 5,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 6,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 7,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 8,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 9,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 10,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 11,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 * 270_000_000,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 * 270_000_000 * 2,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 * 270_000_000 * 3,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 * 270_000_000 * 4,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 * 270_000_000 * 5,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 * 270_000_000 * 6,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 * 270_000_000 * 7,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 * 270_000_000 * 8,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 * 270_000_000 * 9,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 * 270_000_000 * 10,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 * 270_000_000 * 11,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 * 270_000_000 * 11 + 230_000_000
+  ];
+  uint256 public stakingUnlockedTillNow = 0;
+
+  uint256[] public ecosystemUnlockPerMonth = [
+    0,
+    2_000_000_000,
+    2_000_000_000,
+    2_000_000_000,
+    2_000_000_000,
+    2_000_000_000,
+    2_000_000_000,
+    2_000_000_000 + 1_500_000_000,
+    2_000_000_000 + 1_500_000_000,
+    2_000_000_000 + 1_500_000_000,
+    2_000_000_000 + 1_500_000_000,
+    2_000_000_000 + 1_500_000_000,
+    2_000_000_000 + 1_500_000_000,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000 * 2,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000 * 2,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000 * 2,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000 * 2,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000 * 2,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000 * 2,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000 * 2 + 1_000_000_000,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000 * 2 + 1_000_000_000,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000 * 2 + 1_000_000_000,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000 * 2 + 1_000_000_000,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000 * 2 + 1_000_000_000,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000 * 2 + 1_000_000_000,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000 * 2 + 1_000_000_000 + 750_000_000,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000 * 2 + 1_000_000_000 + 750_000_000,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000 * 2 + 1_000_000_000 + 750_000_000,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000 * 2 + 1_000_000_000 + 750_000_000,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000 * 2 + 1_000_000_000 + 750_000_000,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000 * 2 + 1_000_000_000 + 750_000_000,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000 * 2 + 1_000_000_000 + 750_000_000 * 2,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000 * 2 + 1_000_000_000 + 750_000_000 * 2,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000 * 2 + 1_000_000_000 + 750_000_000 * 2,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000 * 2 + 1_000_000_000 + 750_000_000 * 2,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000 * 2 + 1_000_000_000 + 750_000_000 * 2,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000 * 2 + 1_000_000_000 + 750_000_000 * 2,
+    2_000_000_000 + 1_500_000_000 + 1_250_000_000 * 2 + 1_000_000_000 + 750_000_000 * 2 + 500_000_000
+  ];
+  uint256 public ecosystemUnlockedTillNow = 0;
+
+  uint256[] public playToEarnUnlockPerMonth = [
+    0,
+    1_000_000_000,
+    1_000_000_000,
+    1_000_000_000,
+    1_000_000_000 + 842_110_000,
+    1_000_000_000 + 842_110_000,
+    1_000_000_000 + 842_110_000,
+    1_000_000_000 + 842_110_000 + 842_105_000,
+    1_000_000_000 + 842_110_000 + 842_105_000,
+    1_000_000_000 + 842_110_000 + 842_105_000,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 2,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 2,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 2,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 3,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 3,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 3,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 4,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 4,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 4,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 5,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 5,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 5,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 6,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 6,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 6,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 7,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 7,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 7,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 8,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 8,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 8,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 9,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 9,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 9,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 10,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 10,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 10,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 11,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 11,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 11,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 12,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 12,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 12,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 13,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 13,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 13,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 14,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 14,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 14,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 15,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 15,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 15,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 16,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 16,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 16,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 17,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 17,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 17,
+    1_000_000_000 + 842_110_000 + 842_105_000 * 18
+  ];
+  uint256 public playToEarnUnlockedTillNow = 0;
+
+  IUniswapV2Router02 public routerAddress = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
+
+  address public devAddress = 0xa670a43859bBa57dA9F0A275B601A3F0AcccD41a;
+
+  address public coreTeamAddress = 0xd6BD0AA9EC3b00a11c9b56263Ba730d3c1A82b18;
+  address public advisorsAddress = 0x6148E01353EF1104bA85DDe9B60675A9D61B61A1;
+  address public reserveAddress = 0x442C53578DEF2bA3e0e3D402907bA2E6CE204499;
+  address public stakingAddress = 0x3Aa9c623B4f6692f1b1c710899094548Cc8fB316;
+  address public ecosystemAddress = 0x1022D7d2C37281aF0AF8068639211e0f6b09271F;
+  address public playToEarnAddress = 0xbf4f5CA51f777995F60e1F6a7E488787dc82C524;
+
+  uint256 public immutable contractCreationTime;
+
+  uint16 public devTokenFeePercent = 36;
+  uint16 public devBNBFeePercent = 12;
+  uint16 public buyBackFeePercent = 28;
+  uint16 public liquidityFeePercent = 24;
+
+  uint256 private _buyBackBNBCount;
+
+  uint256 private _buyBackFeeCount;
+  uint256 private _liquidityFeeCount;
+  uint256 private _devBNBFeeCount;
 
   bool public inSwapAndLiquify;
 
   mapping(address => uint256) private _userLastTransactionTime;
 
   event SwapAndLiquify(uint256 tokensSwapped, uint256 ethReceived, uint256 tokensIntoLiqudity);
+  event Burn(uint256 amount);
 
   modifier lockTheSwap() {
     inSwapAndLiquify = true;
@@ -54,19 +359,20 @@ contract ABCToken is IERC20Metadata, Ownable {
    */
   constructor() {
     // Create a uniswap pair for this new token
-    uniswapV2Pair = IUniswapV2Factory(PANCAKE_ROUTER.factory()).createPair(
-      address(this),
-      PANCAKE_ROUTER.WETH()
-    );
+    _isPair[IUniswapV2Factory(routerAddress.factory()).createPair(address(this), routerAddress.WETH())] = true;
 
     //exclude owner and this contract from fee
     _isExcludedFromFee[msg.sender] = true;
     _isExcludedFromFee[address(this)] = true;
 
-    // mint to owner address
-    _totalSupply += 100000000 * 10**8;
-    _balances[msg.sender] += 100000000 * 10**8;
-    emit Transfer(address(0), msg.sender, 100000000 * 10**8);
+    // initial mints
+    _mint(msg.sender, 16_000_000_000 * TEN_POW_8);
+    _mint(advisorsAddress, 880_000_000 * TEN_POW_8);
+    _mint(stakingAddress, 400_000_000 * TEN_POW_8);
+    _mint(ecosystemAddress, 3_000_000_000 * TEN_POW_8);
+    _mint(playToEarnAddress, 1_000_000_000 * TEN_POW_8);
+
+    contractCreationTime = block.timestamp;
   }
 
   /**
@@ -131,13 +437,7 @@ contract ABCToken is IERC20Metadata, Ownable {
   /**
    * @dev See {IERC20-allowance}.
    */
-  function allowance(address tokenOwner, address spender)
-    public
-    view
-    virtual
-    override
-    returns (uint256)
-  {
+  function allowance(address tokenOwner, address spender) public view virtual override returns (uint256) {
     return _allowances[tokenOwner][spender];
   }
 
@@ -213,11 +513,7 @@ contract ABCToken is IERC20Metadata, Ownable {
    * - `spender` must have allowance for the caller of at least
    * `subtractedValue`.
    */
-  function decreaseAllowance(address spender, uint256 subtractedValue)
-    public
-    virtual
-    returns (bool)
-  {
+  function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
     uint256 currentAllowance = _allowances[_msgSender()][spender];
     require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
     unchecked {
@@ -249,8 +545,9 @@ contract ABCToken is IERC20Metadata, Ownable {
     require(sender != address(0), "ERC20: transfer from the zero address");
     require(recipient != address(0), "ERC20: transfer to the zero address");
     require(amount > 0, "Transfer amount must be greater than zero");
+
     if (
-      sender != uniswapV2Pair &&
+      !_isPair[sender] &&
       sender != address(this) &&
       sender != owner() &&
       recipient != address(this) &&
@@ -261,15 +558,6 @@ contract ABCToken is IERC20Metadata, Ownable {
         "time between transfers should be 10 seconds"
       );
       _userLastTransactionTime[sender] = block.timestamp;
-    }
-
-    uint256 contractTokenBalance = balanceOf(address(this));
-    if (
-      contractTokenBalance >= _minNumTokensSellToAddToLiquidity &&
-      !inSwapAndLiquify &&
-      sender != uniswapV2Pair
-    ) {
-      swapAndLiquify(contractTokenBalance);
     }
 
     uint256 senderBalance = _balances[sender];
@@ -283,15 +571,69 @@ contract ABCToken is IERC20Metadata, Ownable {
 
       emit Transfer(sender, recipient, amount);
     } else {
-      uint256 devFee = (amount * DEV_FEE) / 1000;
-      uint256 liquidityFee = (amount * LIQUIDITY_FEE) / 1000;
-      uint256 recipientAmount = (amount - devFee - liquidityFee);
-      _balances[recipient] += recipientAmount;
-      _balances[DEV_ADDRESS] += devFee;
+      uint256 devTokenFee = (amount * devTokenFeePercent) / 1000;
+      uint256 liquidityFee = (amount * liquidityFeePercent) / 1000;
+      _liquidityFeeCount += liquidityFee;
       _balances[address(this)] += liquidityFee;
+      uint256 devBNBFee = 0;
+      uint256 buyBackFee = 0;
+      // buy
+      if (_isPair[sender] && recipient != address(routerAddress)) {
+        devBNBFee = (amount * devBNBFeePercent) / 1000;
+        buyBackFee = (amount * buyBackFeePercent) / 1000;
+        _buyBackFeeCount += buyBackFee;
+        _devBNBFeeCount += devBNBFee;
+      }
+      // sell
+      else if (_isPair[recipient]) {
+        devBNBFee = (amount * devBNBFeePercent) / 1000;
+        buyBackFee = (amount * buyBackFeePercent) / 1000;
+        _buyBackFeeCount += buyBackFee;
+        _devBNBFeeCount += devBNBFee;
+        uint256 feeSum = _devBNBFeeCount + _buyBackFeeCount;
+        _balances[address(this)] += feeSum;
+        uint256 swappedBNB = swapTokensForEth(feeSum);
+        uint256 devBNB = (swappedBNB * _devBNBFeeCount) / feeSum;
+        uint256 buyBackBNB = swappedBNB - devBNB;
+        Address.sendValue(payable(devAddress), devBNB);
+        _buyBackBNBCount += buyBackBNB;
+        _buyBackFeeCount = 0;
+        _devBNBFeeCount = 0;
+      } else {
+        // Not buy and not sell
+        if (!inSwapAndLiquify) {
+          swapAndLiquify(_liquidityFeeCount);
+          _liquidityFeeCount = 0;
+        }
+        if (_buyBackBNBCount > 0.1 ether && !inSwapAndLiquify) {
+          _buyBackAndBurn(_buyBackBNBCount);
+          _buyBackBNBCount = 0;
+        }
+      }
+      uint256 recipientAmount = (amount - devTokenFee - liquidityFee - devBNBFee - buyBackFee);
+      _balances[recipient] += recipientAmount;
+      _balances[devAddress] += devTokenFee;
+      emit Transfer(sender, devAddress, devTokenFee);
       emit Transfer(sender, recipient, recipientAmount);
-      emit Transfer(sender, DEV_ADDRESS, devFee);
     }
+  }
+
+  function _buyBackAndBurn(uint256 amount) private lockTheSwap {
+    // generate the uniswap pair path of token -> weth
+    address[] memory path = new address[](2);
+    path[0] = routerAddress.WETH();
+    path[1] = address(this);
+
+    uint256 initialTokenBalance = balanceOf(DEAD_ADDRESS);
+    // make the swap
+    routerAddress.swapExactETHForTokensSupportingFeeOnTransferTokens{ value: amount }(
+      0, // accept any amount of Tokens
+      path,
+      DEAD_ADDRESS, // Burn address
+      block.timestamp + 10
+    );
+    uint256 swappedTokenBalance = balanceOf(DEAD_ADDRESS) - initialTokenBalance;
+    emit Burn(swappedTokenBalance);
   }
 
   function swapAndLiquify(uint256 contractTokenBalance) private lockTheSwap {
@@ -299,17 +641,8 @@ contract ABCToken is IERC20Metadata, Ownable {
     uint256 half = contractTokenBalance / 2;
     uint256 otherHalf = contractTokenBalance - half;
 
-    // capture the contract's current ETH balance.
-    // this is so that we can capture exactly the amount of ETH that the
-    // swap creates, and not make the liquidity event include any ETH that
-    // has been manually sent to the contract
-    uint256 initialBalance = address(this).balance;
-
     // swap tokens for ETH
-    swapTokensForEth(half); // <- this breaks the ETH -> HATE swap when swap+liquify is triggered
-
-    // how much ETH did we just swap into?
-    uint256 newBalance = address(this).balance - initialBalance;
+    uint256 newBalance = swapTokensForEth(half); // <- this breaks the ETH -> HATE swap when swap+liquify is triggered
 
     // add liquidity to uniswap
     addLiquidity(otherHalf, newBalance);
@@ -317,30 +650,39 @@ contract ABCToken is IERC20Metadata, Ownable {
     emit SwapAndLiquify(half, newBalance, otherHalf);
   }
 
-  function swapTokensForEth(uint256 tokenAmount) private {
+  function swapTokensForEth(uint256 tokenAmount) private returns (uint256) {
     // generate the uniswap pair path of token -> weth
     address[] memory path = new address[](2);
     path[0] = address(this);
-    path[1] = PANCAKE_ROUTER.WETH();
+    path[1] = routerAddress.WETH();
 
-    _approve(address(this), address(PANCAKE_ROUTER), tokenAmount);
+    _approve(address(this), address(routerAddress), tokenAmount);
+
+    // capture the contract's current ETH balance.
+    // this is so that we can capture exactly the amount of ETH that the
+    // swap creates, and not make the liquidity event include any ETH that
+    // has been manually sent to the contract
+    uint256 initialBalance = address(this).balance;
 
     // make the swap
-    PANCAKE_ROUTER.swapExactTokensForETHSupportingFeeOnTransferTokens(
+    routerAddress.swapExactTokensForETHSupportingFeeOnTransferTokens(
       tokenAmount,
       0, // accept any amount of ETH
       path,
       address(this),
       block.timestamp
     );
+
+    // how much ETH did we just swap into?
+    return address(this).balance - initialBalance;
   }
 
   function addLiquidity(uint256 tokenAmount, uint256 ethAmount) private {
     // approve token transfer to cover all possible scenarios
-    _approve(address(this), address(PANCAKE_ROUTER), tokenAmount);
+    _approve(address(this), address(routerAddress), tokenAmount);
 
     // add the liquidity
-    PANCAKE_ROUTER.addLiquidityETH{ value: ethAmount }(
+    routerAddress.addLiquidityETH{ value: ethAmount }(
       address(this),
       tokenAmount,
       0, // slippage is unavoidable
@@ -381,6 +723,153 @@ contract ABCToken is IERC20Metadata, Ownable {
 
   function includeInFee(address account) public onlyOwner {
     _isExcludedFromFee[account] = false;
+  }
+
+  function changeRouterAddress(IUniswapV2Router02 newRouterAddress) public onlyOwner {
+    require(routerAddress != newRouterAddress, "Address already setted");
+    routerAddress = newRouterAddress;
+  }
+
+  function changeDevAddress(address newDevAddress) public onlyOwner {
+    require(devAddress != newDevAddress, "Address already setted");
+    devAddress = newDevAddress;
+  }
+
+  function changeCoreTeamAddress(address newCoreTeamAddress) public onlyOwner {
+    require(coreTeamAddress != newCoreTeamAddress, "Address already setted");
+    coreTeamAddress = newCoreTeamAddress;
+  }
+
+  function changeAdvisorsAddress(address newAdvisorsAddress) public onlyOwner {
+    require(advisorsAddress != newAdvisorsAddress, "Address already setted");
+    advisorsAddress = newAdvisorsAddress;
+  }
+
+  function changeReserveAddress(address newReserveAddress) public onlyOwner {
+    require(reserveAddress != newReserveAddress, "Address already setted");
+    reserveAddress = newReserveAddress;
+  }
+
+  function changeStakingAddress(address newStakingAddress) public onlyOwner {
+    require(stakingAddress != newStakingAddress, "Address already setted");
+    stakingAddress = newStakingAddress;
+  }
+
+  function changeEcosystemAddress(address newEcosystemAddress) public onlyOwner {
+    require(ecosystemAddress != newEcosystemAddress, "Address already setted");
+    ecosystemAddress = newEcosystemAddress;
+  }
+
+  function changePlayToEarnAddress(address newPlayToEarnAddress) public onlyOwner {
+    require(playToEarnAddress != newPlayToEarnAddress, "Address already setted");
+    playToEarnAddress = newPlayToEarnAddress;
+  }
+
+  function changeDevTokenFeePercent(uint16 newDevTokenFeePercent) public onlyOwner {
+    require(devTokenFeePercent != newDevTokenFeePercent, "fee already setted");
+    devTokenFeePercent = newDevTokenFeePercent;
+  }
+
+  function changeDevBNBFeePercent(uint16 newDevBNBFeePercent) public onlyOwner {
+    require(devBNBFeePercent != newDevBNBFeePercent, "fee already setted");
+    devBNBFeePercent = newDevBNBFeePercent;
+  }
+
+  function changeBuyBackFeePercent(uint16 newBuyBackFeePercent) public onlyOwner {
+    require(buyBackFeePercent != newBuyBackFeePercent, "fee already setted");
+    buyBackFeePercent = newBuyBackFeePercent;
+  }
+
+  function changeLiquidityFeePercent(uint16 newLiquidityFeePercent) public onlyOwner {
+    require(liquidityFeePercent != newLiquidityFeePercent, "fee already setted");
+    liquidityFeePercent = newLiquidityFeePercent;
+  }
+
+  function addPairAddress(address pairAddress) public onlyOwner {
+    require(!_isPair[pairAddress], "address is already added");
+    _isPair[pairAddress] = true;
+  }
+
+  function removePairAddress(address pairAddress) public onlyOwner {
+    require(_isPair[pairAddress], "address is already removed");
+    _isPair[pairAddress] = false;
+  }
+
+  /** @dev Creates `amount` tokens and assigns them to `account`, increasing
+   * the total supply.
+   *
+   * Emits a {Transfer} event with `from` set to the zero address.
+   *
+   * Requirements:
+   *
+   * - `account` cannot be the zero address.
+   */
+  function _mint(address account, uint256 amount) internal virtual {
+    require(account != address(0), "ERC20: mint to the zero address");
+
+    _totalSupply += amount;
+    _balances[account] += amount;
+    emit Transfer(address(0), account, amount);
+  }
+
+  function coreTeamUnlock() public {
+    uint256 monthCount = (block.timestamp - contractCreationTime) / MONTH;
+    require(monthCount >= 13, "it is too soon to unlock");
+    if (monthCount > 36) monthCount = 36;
+    uint256 unlockCount = (coreTeamUnlockPerMonth[monthCount - 13] - coreTeamUnlockedTillNow) * TEN_POW_8;
+    require(unlockCount > 0, "Now there is no token to unlock");
+    _mint(coreTeamAddress, unlockCount);
+    coreTeamUnlockedTillNow = coreTeamUnlockPerMonth[monthCount - 13];
+  }
+
+  function advisorsUnlock() public {
+    uint256 monthCount = (block.timestamp - contractCreationTime) / MONTH;
+    require(monthCount >= 2, "it is too soon to unlock");
+    if (monthCount > 36) monthCount = 36;
+    uint256 unlockCount = (advisorsUnlockPerMonth[monthCount - 2] - advisorsUnlockedTillNow) * TEN_POW_8;
+    require(unlockCount > 0, "Now there is no token to unlock");
+    _mint(advisorsAddress, unlockCount);
+    advisorsUnlockedTillNow = advisorsUnlockPerMonth[monthCount - 2];
+  }
+
+  function reserveUnlock() public {
+    uint256 monthCount = (block.timestamp - contractCreationTime) / MONTH;
+    require(monthCount >= 24, "it is too soon to unlock");
+    if (monthCount > 60) monthCount = 60;
+    uint256 unlockCount = (reserveUnlockPerMonth[monthCount - 24] - reserveUnlockedTillNow) * TEN_POW_8;
+    require(unlockCount > 0, "Now there is no token to unlock");
+    _mint(reserveAddress, unlockCount);
+    reserveUnlockedTillNow = reserveUnlockPerMonth[monthCount - 24];
+  }
+
+  function stakingUnlock() public {
+    uint256 monthCount = (block.timestamp - contractCreationTime) / MONTH;
+    require(monthCount >= 2, "it is too soon to unlock");
+    if (monthCount > 60) monthCount = 60;
+    uint256 unlockCount = (stakingUnlockPerMonth[monthCount - 2] - stakingUnlockedTillNow) * TEN_POW_8;
+    require(unlockCount > 0, "Now there is no token to unlock");
+    _mint(stakingAddress, unlockCount);
+    stakingUnlockedTillNow = stakingUnlockPerMonth[monthCount - 2];
+  }
+
+  function ecosystemUnlock() public {
+    uint256 monthCount = (block.timestamp - contractCreationTime) / MONTH;
+    require(monthCount >= 2, "it is too soon to unlock");
+    if (monthCount > 45) monthCount = 45;
+    uint256 unlockCount = (ecosystemUnlockPerMonth[monthCount - 2] - ecosystemUnlockedTillNow) * TEN_POW_8;
+    require(unlockCount > 0, "Now there is no token to unlock");
+    _mint(ecosystemAddress, unlockCount);
+    ecosystemUnlockedTillNow = ecosystemUnlockPerMonth[monthCount - 2];
+  }
+
+  function playToEarnUnlock() public {
+    uint256 monthCount = (block.timestamp - contractCreationTime) / MONTH;
+    require(monthCount >= 2, "it is too soon to unlock");
+    if (monthCount > 60) monthCount = 60;
+    uint256 unlockCount = (playToEarnUnlockPerMonth[monthCount - 2] - playToEarnUnlockedTillNow) * TEN_POW_8;
+    require(unlockCount > 0, "Now there is no token to unlock");
+    _mint(playToEarnAddress, unlockCount);
+    playToEarnUnlockedTillNow = playToEarnUnlockPerMonth[monthCount - 2];
   }
 
   // solhint-disable-next-line no-empty-blocks
