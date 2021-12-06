@@ -311,7 +311,7 @@ contract ABCToken is IERC20Metadata, Ownable {
   ];
   uint256 public playToEarnUnlockedTillNow = 0;
 
-  IUniswapV2Router02 public routerAddress = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
+  IUniswapV2Router02 public routerAddress = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
 
   address public devAddress = 0xa670a43859bBa57dA9F0A275B601A3F0AcccD41a;
 

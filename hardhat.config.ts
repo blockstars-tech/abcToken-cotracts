@@ -36,10 +36,17 @@ const config: HardhatUserConfig = {
       },
       chainId: 1,
     },
+    bsc_testnet: {
+      url: "https://data-seed-prebsc-1-s1.binance.org:8545/",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+    },
   },
   typechain: {
     target: "truffle-v5",
     alwaysGenerateOverloads: true,
+  },
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_API_KEY,
   },
 };
 
