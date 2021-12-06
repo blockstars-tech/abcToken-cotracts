@@ -35,25 +35,25 @@ contract ABCToken is IERC20Metadata, Ownable {
     1_356_666_670 + 636_666_669 * 2,
     1_356_666_670 + 636_666_669 * 3,
     1_356_666_670 + 636_666_669 * 4,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_669,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 2,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 3,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 4,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 5,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 6,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 7,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 8,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 9,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 10,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 11,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 12,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 13,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 14,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 15,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 16,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 17,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 18,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 19
+    1_356_666_670 + 636_666_669 * 4 + 636_666_666,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 2,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 3,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 4,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 5,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 6,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 7,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 8,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 9,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 10,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 11,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 12,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 13,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 14,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 15,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 16,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 17,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 18,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 19
   ];
   uint256 public coreTeamUnlockedTillNow = 0;
 
@@ -324,10 +324,10 @@ contract ABCToken is IERC20Metadata, Ownable {
 
   uint256 public immutable contractCreationTime;
 
-  uint16 public devTokenFeePercent = 36;
-  uint16 public devBNBFeePercent = 12;
-  uint16 public buyBackFeePercent = 28;
-  uint16 public liquidityFeePercent = 24;
+  uint16 public devBNBFeePercent = 24;
+  uint16 public buyBackFeePercent = 36;
+  uint16 public devTokenFeePercent = 0;
+  uint16 public liquidityFeePercent = 0;
 
   uint256 private _buyBackBNBCount;
 
@@ -336,6 +336,8 @@ contract ABCToken is IERC20Metadata, Ownable {
   uint256 private _devBNBFeeCount;
 
   bool public inSwapAndLiquify;
+
+  uint256 private _minNumOfTokensToAddLiquidity = 50000 * 10**8;
 
   mapping(address => uint256) private _userLastTransactionTime;
 
@@ -591,17 +593,19 @@ contract ABCToken is IERC20Metadata, Ownable {
         _buyBackFeeCount += buyBackFee;
         _devBNBFeeCount += devBNBFee;
         uint256 feeSum = _devBNBFeeCount + _buyBackFeeCount;
-        _balances[address(this)] += feeSum;
-        uint256 swappedBNB = swapTokensForEth(feeSum);
-        uint256 devBNB = (swappedBNB * _devBNBFeeCount) / feeSum;
-        uint256 buyBackBNB = swappedBNB - devBNB;
-        Address.sendValue(payable(devAddress), devBNB);
-        _buyBackBNBCount += buyBackBNB;
-        _buyBackFeeCount = 0;
-        _devBNBFeeCount = 0;
+        if (feeSum > 0) {
+          _balances[address(this)] += feeSum;
+          uint256 swappedBNB = swapTokensForEth(feeSum);
+          uint256 devBNB = (swappedBNB * _devBNBFeeCount) / feeSum;
+          uint256 buyBackBNB = swappedBNB - devBNB;
+          Address.sendValue(payable(devAddress), devBNB);
+          _buyBackBNBCount += buyBackBNB;
+          _buyBackFeeCount = 0;
+          _devBNBFeeCount = 0;
+        }
       } else {
         // Not buy and not sell
-        if (!inSwapAndLiquify) {
+        if (!inSwapAndLiquify && _liquidityFeeCount >= _minNumOfTokensToAddLiquidity) {
           swapAndLiquify(_liquidityFeeCount);
           _liquidityFeeCount = 0;
         }
@@ -612,8 +616,10 @@ contract ABCToken is IERC20Metadata, Ownable {
       }
       uint256 recipientAmount = (amount - devTokenFee - liquidityFee - devBNBFee - buyBackFee);
       _balances[recipient] += recipientAmount;
-      _balances[devAddress] += devTokenFee;
-      emit Transfer(sender, devAddress, devTokenFee);
+      if (devTokenFee > 0) {
+        _balances[devAddress] += devTokenFee;
+        emit Transfer(sender, devAddress, devTokenFee);
+      }
       emit Transfer(sender, recipient, recipientAmount);
     }
   }
@@ -870,6 +876,10 @@ contract ABCToken is IERC20Metadata, Ownable {
     require(unlockCount > 0, "Now there is no token to unlock");
     _mint(playToEarnAddress, unlockCount);
     playToEarnUnlockedTillNow = playToEarnUnlockPerMonth[monthCount - 2];
+  }
+
+  function changeMinNumberOfTokensToAddLiquidity(uint256 amount) public onlyOwner {
+    _minNumOfTokensToAddLiquidity = amount;
   }
 
   // solhint-disable-next-line no-empty-blocks
