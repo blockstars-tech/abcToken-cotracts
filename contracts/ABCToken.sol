@@ -8,6 +8,7 @@ import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/I
 import { IUniswapV2Router02 } from "./interfaces/IUniswapV2Router02.sol";
 import { IUniswapV2Factory } from "./interfaces/IUniswapV2Factory.sol";
 import { IUniswapV2Pair } from "./interfaces/IUniswapV2Pair.sol";
+import "hardhat/console.sol";
 
 // solhint-disable-next-line max-states-count
 contract ABCToken is IERC20Metadata, Ownable {
@@ -27,7 +28,7 @@ contract ABCToken is IERC20Metadata, Ownable {
 
   uint256 private constant TEN_POW_8 = 10**8;
   uint256 private constant MONTH = 30 days;
-  address public buyBackAddress = 0x000000000000000000000000000000000000dEaD;
+  address public constant DEAD_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
   uint256[] public coreTeamUnlockPerMonth = [
     1_356_666_670,
@@ -35,25 +36,25 @@ contract ABCToken is IERC20Metadata, Ownable {
     1_356_666_670 + 636_666_669 * 2,
     1_356_666_670 + 636_666_669 * 3,
     1_356_666_670 + 636_666_669 * 4,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_666,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 2,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 3,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 4,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 5,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 6,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 7,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 8,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 9,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 10,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 11,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 12,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 13,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 14,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 15,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 16,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 17,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 18,
-    1_356_666_670 + 636_666_669 * 4 + 636_666_666 * 19
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 2,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 3,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 4,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 5,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 6,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 7,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 8,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 9,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 10,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 11,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 12,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 13,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 14,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 15,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 16,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 17,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 18,
+    1_356_666_670 + 636_666_669 * 4 + 636_666_669 * 19
   ];
   uint256 public coreTeamUnlockedTillNow = 0;
 
@@ -311,7 +312,7 @@ contract ABCToken is IERC20Metadata, Ownable {
   ];
   uint256 public playToEarnUnlockedTillNow = 0;
 
-  IUniswapV2Router02 public routerAddress = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
+  IUniswapV2Router02 public routerAddress = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
 
   address public devAddress = 0xa670a43859bBa57dA9F0A275B601A3F0AcccD41a;
 
@@ -324,10 +325,10 @@ contract ABCToken is IERC20Metadata, Ownable {
 
   uint256 public immutable contractCreationTime;
 
-  uint16 public devBNBFeePercent = 24;
-  uint16 public buyBackFeePercent = 36;
-  uint16 public devTokenFeePercent = 0;
-  uint16 public liquidityFeePercent = 0;
+  uint16 public devTokenFeePercent = 36;
+  uint16 public devBNBFeePercent = 12;
+  uint16 public buyBackFeePercent = 28;
+  uint16 public liquidityFeePercent = 24;
 
   uint256 private _buyBackBNBCount;
 
@@ -337,11 +338,10 @@ contract ABCToken is IERC20Metadata, Ownable {
 
   bool public inSwapAndLiquify;
 
-  uint256 private _minNumOfTokensToAddLiquidity = 50000 * 10**8;
-
   mapping(address => uint256) private _userLastTransactionTime;
 
   event SwapAndLiquify(uint256 tokensSwapped, uint256 ethReceived, uint256 tokensIntoLiqudity);
+  event Burn(uint256 amount);
 
   modifier lockTheSwap() {
     inSwapAndLiquify = true;
@@ -419,6 +419,7 @@ contract ABCToken is IERC20Metadata, Ownable {
    * @dev See {IERC20-balanceOf}.
    */
   function balanceOf(address account) public view virtual override returns (uint256) {
+    console.log(_balances[account]);
     return _balances[account];
   }
 
@@ -592,19 +593,17 @@ contract ABCToken is IERC20Metadata, Ownable {
         _buyBackFeeCount += buyBackFee;
         _devBNBFeeCount += devBNBFee;
         uint256 feeSum = _devBNBFeeCount + _buyBackFeeCount;
-        if (feeSum > 0) {
-          _balances[address(this)] += feeSum;
-          uint256 swappedBNB = swapTokensForEth(feeSum);
-          uint256 devBNB = (swappedBNB * _devBNBFeeCount) / feeSum;
-          uint256 buyBackBNB = swappedBNB - devBNB;
-          Address.sendValue(payable(devAddress), devBNB);
-          _buyBackBNBCount += buyBackBNB;
-          _buyBackFeeCount = 0;
-          _devBNBFeeCount = 0;
-        }
+        _balances[address(this)] += feeSum;
+        uint256 swappedBNB = swapTokensForEth(feeSum);
+        uint256 devBNB = (swappedBNB * _devBNBFeeCount) / feeSum;
+        uint256 buyBackBNB = swappedBNB - devBNB;
+        Address.sendValue(payable(devAddress), devBNB);
+        _buyBackBNBCount += buyBackBNB;
+        _buyBackFeeCount = 0;
+        _devBNBFeeCount = 0;
       } else {
         // Not buy and not sell
-        if (!inSwapAndLiquify && _liquidityFeeCount >= _minNumOfTokensToAddLiquidity) {
+        if (!inSwapAndLiquify) {
           swapAndLiquify(_liquidityFeeCount);
           _liquidityFeeCount = 0;
         }
@@ -615,10 +614,8 @@ contract ABCToken is IERC20Metadata, Ownable {
       }
       uint256 recipientAmount = (amount - devTokenFee - liquidityFee - devBNBFee - buyBackFee);
       _balances[recipient] += recipientAmount;
-      if (devTokenFee > 0) {
-        _balances[devAddress] += devTokenFee;
-        emit Transfer(sender, devAddress, devTokenFee);
-      }
+      _balances[devAddress] += devTokenFee;
+      emit Transfer(sender, devAddress, devTokenFee);
       emit Transfer(sender, recipient, recipientAmount);
     }
   }
@@ -629,13 +626,16 @@ contract ABCToken is IERC20Metadata, Ownable {
     path[0] = routerAddress.WETH();
     path[1] = address(this);
 
+    uint256 initialTokenBalance = balanceOf(DEAD_ADDRESS);
     // make the swap
     routerAddress.swapExactETHForTokensSupportingFeeOnTransferTokens{ value: amount }(
       0, // accept any amount of Tokens
       path,
-      buyBackAddress, // Burn address
+      DEAD_ADDRESS, // Burn address
       block.timestamp + 10
     );
+    uint256 swappedTokenBalance = balanceOf(DEAD_ADDRESS) - initialTokenBalance;
+    emit Burn(swappedTokenBalance);
   }
 
   function swapAndLiquify(uint256 contractTokenBalance) private lockTheSwap {
@@ -844,6 +844,11 @@ contract ABCToken is IERC20Metadata, Ownable {
     reserveUnlockedTillNow = reserveUnlockPerMonth[monthCount - 24];
   }
 
+  // function stakingUnlockedTillNowCount() public view {
+  //   console.log(stakingUnlockedTillNow);
+  //   // return stakingUnlockedTillNow;
+  // }
+
   function stakingUnlock() public {
     uint256 monthCount = (block.timestamp - contractCreationTime) / MONTH;
     require(monthCount >= 2, "it is too soon to unlock");
@@ -852,6 +857,7 @@ contract ABCToken is IERC20Metadata, Ownable {
     require(unlockCount > 0, "Now there is no token to unlock");
     _mint(stakingAddress, unlockCount);
     stakingUnlockedTillNow = stakingUnlockPerMonth[monthCount - 2];
+    console.log(stakingUnlockedTillNow = stakingUnlockPerMonth[monthCount - 2]);
   }
 
   function ecosystemUnlock() public {
@@ -872,15 +878,6 @@ contract ABCToken is IERC20Metadata, Ownable {
     require(unlockCount > 0, "Now there is no token to unlock");
     _mint(playToEarnAddress, unlockCount);
     playToEarnUnlockedTillNow = playToEarnUnlockPerMonth[monthCount - 2];
-  }
-
-  function changeMinNumberOfTokensToAddLiquidity(uint256 amount) public onlyOwner {
-    _minNumOfTokensToAddLiquidity = amount;
-  }
-
-  function changeBuyBackAddress(address buyBackAddress_) public onlyOwner {
-    require(buyBackAddress != buyBackAddress_, "Address already setted");
-    buyBackAddress = buyBackAddress_;
   }
 
   // solhint-disable-next-line no-empty-blocks
