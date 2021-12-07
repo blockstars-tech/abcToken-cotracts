@@ -8,7 +8,6 @@ import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/I
 import { IUniswapV2Router02 } from "../interfaces/IUniswapV2Router02.sol";
 import { IUniswapV2Factory } from "../interfaces/IUniswapV2Factory.sol";
 import { IUniswapV2Pair } from "../interfaces/IUniswapV2Pair.sol";
-
 import "hardhat/console.sol";
 
 // solhint-disable-next-line max-states-count
@@ -187,18 +186,18 @@ contract TestABC is IERC20Metadata, Ownable {
     400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 10,
     400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 11,
     400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12,
-    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 * 270_000_000,
-    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 * 270_000_000 * 2,
-    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 * 270_000_000 * 3,
-    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 * 270_000_000 * 4,
-    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 * 270_000_000 * 5,
-    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 * 270_000_000 * 6,
-    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 * 270_000_000 * 7,
-    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 * 270_000_000 * 8,
-    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 * 270_000_000 * 9,
-    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 * 270_000_000 * 10,
-    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 * 270_000_000 * 11,
-    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 * 270_000_000 * 11 + 230_000_000
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 + 270_000_000,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 + 270_000_000 * 2,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 + 270_000_000 * 3,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 + 270_000_000 * 4,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 + 270_000_000 * 5,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 + 270_000_000 * 6,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 + 270_000_000 * 7,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 + 270_000_000 * 8,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 + 270_000_000 * 9,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 + 270_000_000 * 10,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 + 270_000_000 * 11,
+    400_000_000 * 11 + 370_000_000 * 12 + 330_000_000 * 12 + 300_000_000 * 12 + 270_000_000 * 11 + 230_000_000
   ];
   uint256 public stakingUnlockedTillNow = 0;
 
@@ -324,13 +323,6 @@ contract TestABC is IERC20Metadata, Ownable {
   address public ecosystemAddress = 0x1022D7d2C37281aF0AF8068639211e0f6b09271F;
   address public playToEarnAddress = 0xbf4f5CA51f777995F60e1F6a7E488787dc82C524;
 
-  uint256 public coreTeamLastUnlock;
-  uint256 public advisorsLastUnlock;
-  uint256 public reserveLastUnlock;
-  uint256 public stakingLastUnlock;
-  uint256 public ecosystemLastUnlock;
-  uint256 public playToEarnLastUnlcok;
-
   uint256 public immutable contractCreationTime;
 
   uint16 public devTokenFeePercent = 36;
@@ -427,6 +419,7 @@ contract TestABC is IERC20Metadata, Ownable {
    * @dev See {IERC20-balanceOf}.
    */
   function balanceOf(address account) public view virtual override returns (uint256) {
+    console.log(_balances[account]);
     return _balances[account];
   }
 
@@ -562,18 +555,12 @@ contract TestABC is IERC20Metadata, Ownable {
       recipient != address(this) &&
       recipient != owner()
     ) {
-      if (block.timestamp < _userLastTransactionTime[msg.sender] + 10) {
-        console.log("time between transfer should be 10 seconds");
-      }
       require(
         block.timestamp >= _userLastTransactionTime[msg.sender] + 10,
         "time between transfers should be 10 seconds"
       );
       _userLastTransactionTime[sender] = block.timestamp;
     }
-    console.log("sender is ->   ", sender);
-    console.log("recipient is ->", recipient);
-    console.log("amount is ->   ", amount);
 
     uint256 senderBalance = _balances[sender];
     require(senderBalance >= amount, "ERC20: transfer amount exceeds balance");
@@ -585,19 +572,15 @@ contract TestABC is IERC20Metadata, Ownable {
       _balances[recipient] += amount;
 
       emit Transfer(sender, recipient, amount);
-      console.log("End of transfer without fee");
     } else {
       uint256 devTokenFee = (amount * devTokenFeePercent) / 1000;
       uint256 liquidityFee = (amount * liquidityFeePercent) / 1000;
       _liquidityFeeCount += liquidityFee;
       _balances[address(this)] += liquidityFee;
-      _balances[devAddress] += devTokenFee;
-      emit Transfer(sender, devAddress, devTokenFee);
       uint256 devBNBFee = 0;
       uint256 buyBackFee = 0;
       // buy
       if (_isPair[sender] && recipient != address(routerAddress)) {
-        console.log("buy");
         devBNBFee = (amount * devBNBFeePercent) / 1000;
         buyBackFee = (amount * buyBackFeePercent) / 1000;
         _buyBackFeeCount += buyBackFee;
@@ -605,14 +588,12 @@ contract TestABC is IERC20Metadata, Ownable {
       }
       // sell
       else if (_isPair[recipient]) {
-        console.log("sell");
         devBNBFee = (amount * devBNBFeePercent) / 1000;
         buyBackFee = (amount * buyBackFeePercent) / 1000;
         _buyBackFeeCount += buyBackFee;
         _devBNBFeeCount += devBNBFee;
         uint256 feeSum = _devBNBFeeCount + _buyBackFeeCount;
         _balances[address(this)] += feeSum;
-        console.log("ethers transferred");
         uint256 swappedBNB = swapTokensForEth(feeSum);
         uint256 devBNB = (swappedBNB * _devBNBFeeCount) / feeSum;
         uint256 buyBackBNB = swappedBNB - devBNB;
@@ -622,21 +603,20 @@ contract TestABC is IERC20Metadata, Ownable {
         _devBNBFeeCount = 0;
       } else {
         // Not buy and not sell
-        console.log("Not buy and not sell");
         if (!inSwapAndLiquify) {
           swapAndLiquify(_liquidityFeeCount);
           _liquidityFeeCount = 0;
         }
         if (_buyBackBNBCount > 0.1 ether && !inSwapAndLiquify) {
-          console.log("buy back happened");
           _buyBackAndBurn(_buyBackBNBCount);
           _buyBackBNBCount = 0;
         }
       }
       uint256 recipientAmount = (amount - devTokenFee - liquidityFee - devBNBFee - buyBackFee);
       _balances[recipient] += recipientAmount;
+      _balances[devAddress] += devTokenFee;
+      emit Transfer(sender, devAddress, devTokenFee);
       emit Transfer(sender, recipient, recipientAmount);
-      console.log("End of transfer");
     }
   }
 
@@ -647,7 +627,6 @@ contract TestABC is IERC20Metadata, Ownable {
     path[1] = address(this);
 
     uint256 initialTokenBalance = balanceOf(DEAD_ADDRESS);
-    console.log("initial balance is =>", initialTokenBalance);
     // make the swap
     routerAddress.swapExactETHForTokensSupportingFeeOnTransferTokens{ value: amount }(
       0, // accept any amount of Tokens
@@ -656,13 +635,10 @@ contract TestABC is IERC20Metadata, Ownable {
       block.timestamp + 10
     );
     uint256 swappedTokenBalance = balanceOf(DEAD_ADDRESS) - initialTokenBalance;
-    console.log("swappedTokenBalance =>", swappedTokenBalance);
     emit Burn(swappedTokenBalance);
-    console.log("burned");
   }
 
   function swapAndLiquify(uint256 contractTokenBalance) private lockTheSwap {
-    console.log("swap and liquidty happened");
     // split the contract balance into halves
     uint256 half = contractTokenBalance / 2;
     uint256 otherHalf = contractTokenBalance - half;
@@ -835,9 +811,6 @@ contract TestABC is IERC20Metadata, Ownable {
 
     _totalSupply += amount;
     _balances[account] += amount;
-    console.log("Unlock");
-    console.log("account ->", account);
-    console.log("amount  ->", amount);
     emit Transfer(address(0), account, amount);
   }
 
@@ -871,6 +844,11 @@ contract TestABC is IERC20Metadata, Ownable {
     reserveUnlockedTillNow = reserveUnlockPerMonth[monthCount - 24];
   }
 
+  // function stakingUnlockedTillNowCount() public view {
+  //   console.log(stakingUnlockedTillNow);
+  //   // return stakingUnlockedTillNow;
+  // }
+
   function stakingUnlock() public {
     uint256 monthCount = (block.timestamp - contractCreationTime) / MONTH;
     require(monthCount >= 2, "it is too soon to unlock");
@@ -879,6 +857,7 @@ contract TestABC is IERC20Metadata, Ownable {
     require(unlockCount > 0, "Now there is no token to unlock");
     _mint(stakingAddress, unlockCount);
     stakingUnlockedTillNow = stakingUnlockPerMonth[monthCount - 2];
+    console.log(stakingUnlockedTillNow = stakingUnlockPerMonth[monthCount - 2]);
   }
 
   function ecosystemUnlock() public {
@@ -904,47 +883,3 @@ contract TestABC is IERC20Metadata, Ownable {
   // solhint-disable-next-line no-empty-blocks
   receive() external payable {}
 }
-
-// function coreTeamUnlock2() public {
-//   require(msg.sender == coreTeamAddress);
-//   require(coreTeamLastUnlock < contractCreationTime + MONTH * 37, "already unlocked all tokens");
-//   if (coreTeamLastUnlock == 0) {
-//     uint256 monthCount = (block.timestamp - contractCreationTime) / MONTH;
-//     require(monthCount >= 13, "it is too soon to unlock");
-//     _mint(coreTeamAddress, 1_356_666_670);
-//     if (monthCount > 13) {
-//       if (monthCount <= 17) {
-//         _mint(coreTeamAddress, (monthCount - 13) * 636_666_669);
-//       } else if (monthCount <= 36) {
-//         _mint(coreTeamAddress, 4 * 636_666_669);
-//         _mint(coreTeamAddress, (monthCount - 17) * 636_666_666);
-//       } else {
-//         _mint(coreTeamAddress, 4 * 636_666_669);
-//         _mint(coreTeamAddress, 19 * 636_666_666);
-//       }
-//     }
-//     coreTeamLastUnlock = contractCreationTime + monthCount * MONTH;
-//   } else {
-//     uint256 lastMonthCount = (coreTeamLastUnlock - contractCreationTime) / MONTH;
-//     uint256 monthCount = (block.timestamp - coreTeamLastUnlock) / MONTH;
-//     uint256 monthCountFromCreation = monthCount + lastMonthCount;
-//     require(monthCount > 0, "It's not passed a month yet after the last unlock");
-//     if (monthCountFromCreation <= 17) {
-//       _mint(coreTeamAddress, monthCount * 636_666_669);
-//     } else if (monthCountFromCreation <= 36) {
-//       if (lastMonthCount <= 17) {
-//         _mint(coreTeamAddress, (17 - lastMonthCount) * 636_666_669);
-//         _mint(coreTeamAddress, (monthCount - (17 - lastMonthCount) * 636_666_666));
-//       } else {
-//         _mint(coreTeamAddress, monthCount * 636_666_666);
-//       }
-//     } else {
-//       if (lastMonthCount <= 17) {
-//         _mint(coreTeamAddress, (17 - lastMonthCount) * 636_666_669);
-//         _mint(coreTeamAddress, 19 * 636_666_666);
-//       } else {
-//         _mint(coreTeamAddress, (36 - lastMonthCount) * 636_666_666);
-//       }
-//     }
-//   }
-// }

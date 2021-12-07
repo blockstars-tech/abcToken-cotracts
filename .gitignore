@@ -10,3 +10,4 @@ artifacts
 
 # VSCode
 .vscode
+contracts/Safemoon.sol

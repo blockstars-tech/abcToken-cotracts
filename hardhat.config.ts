@@ -32,21 +32,14 @@ const config: HardhatUserConfig = {
         accountsBalance: "100000000000000000000000000",
       },
       forking: {
-        url: process.env.MAINNET_URL || "",
+        url: process.env.MAINNET_URL || "https://eth-mainnet.alchemyapi.io/v2/cFQ5LOwU48KHlVER6qpLAFVnBwKFcN7S",
       },
       chainId: 1,
-    },
-    bsc_testnet: {
-      url: "https://data-seed-prebsc-1-s1.binance.org:8545/",
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
     },
   },
   typechain: {
     target: "truffle-v5",
     alwaysGenerateOverloads: true,
-  },
-  etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY,
   },
 };
 
