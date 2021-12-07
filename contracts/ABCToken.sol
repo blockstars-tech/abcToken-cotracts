@@ -27,7 +27,7 @@ contract ABCToken is IERC20Metadata, Ownable {
 
   uint256 private constant TEN_POW_8 = 10**8;
   uint256 private constant MONTH = 30 days;
-  address public constant DEAD_ADDRESS = 0x000000000000000000000000000000000000dEaD;
+  address public buyBackAddress = 0x000000000000000000000000000000000000dEaD;
 
   uint256[] public coreTeamUnlockPerMonth = [
     1_356_666_670,
@@ -342,7 +342,6 @@ contract ABCToken is IERC20Metadata, Ownable {
   mapping(address => uint256) private _userLastTransactionTime;
 
   event SwapAndLiquify(uint256 tokensSwapped, uint256 ethReceived, uint256 tokensIntoLiqudity);
-  event Burn(uint256 amount);
 
   modifier lockTheSwap() {
     inSwapAndLiquify = true;
@@ -630,16 +629,13 @@ contract ABCToken is IERC20Metadata, Ownable {
     path[0] = routerAddress.WETH();
     path[1] = address(this);
 
-    uint256 initialTokenBalance = balanceOf(DEAD_ADDRESS);
     // make the swap
     routerAddress.swapExactETHForTokensSupportingFeeOnTransferTokens{ value: amount }(
       0, // accept any amount of Tokens
       path,
-      DEAD_ADDRESS, // Burn address
+      buyBackAddress, // Burn address
       block.timestamp + 10
     );
-    uint256 swappedTokenBalance = balanceOf(DEAD_ADDRESS) - initialTokenBalance;
-    emit Burn(swappedTokenBalance);
   }
 
   function swapAndLiquify(uint256 contractTokenBalance) private lockTheSwap {
@@ -880,6 +876,11 @@ contract ABCToken is IERC20Metadata, Ownable {
 
   function changeMinNumberOfTokensToAddLiquidity(uint256 amount) public onlyOwner {
     _minNumOfTokensToAddLiquidity = amount;
+  }
+
+  function changeBuyBackAddress(address buyBackAddress_) public onlyOwner {
+    require(buyBackAddress != buyBackAddress_, "Address already setted");
+    buyBackAddress = buyBackAddress_;
   }
 
   // solhint-disable-next-line no-empty-blocks
